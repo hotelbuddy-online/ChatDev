@@ -90,7 +90,8 @@ class Phase(ABC):
         assert 1 <= chat_turn_limit <= 100
 
         if not chat_env.exist_employee(assistant_role_name):
-            raise ValueError(f"{assistant_role_name} not recruited in ChatEnv.")
+            raise ValueError(
+                f"{assistant_role_name} not recruited in ChatEnv.")
         if not chat_env.exist_employee(user_role_name):
             raise ValueError(f"{user_role_name} not recruited in ChatEnv.")
 
@@ -110,7 +111,8 @@ class Phase(ABC):
         # log_and_print_online("System", role_play_session.user_sys_msg)
 
         # start the chat
-        _, input_user_msg = role_play_session.init_chat(None, placeholders, phase_prompt)
+        _, input_user_msg = role_play_session.init_chat(
+            None, placeholders, phase_prompt)
         seminar_conclusion = None
 
         # handle chats
@@ -128,7 +130,8 @@ class Phase(ABC):
             # 4. then input_assistant_msg send to LLM and get user_response
             # all above are done in role_play_session.step, which contains two interactions with LLM
             # the first interaction is logged in role_play_session.init_chat
-            assistant_response, user_response = role_play_session.step(input_user_msg, chat_turn_limit == 1)
+            assistant_response, user_response = role_play_session.step(
+                input_user_msg, chat_turn_limit == 1)
 
             conversation_meta = "**" + assistant_role_name + "<->" + user_role_name + " on : " + str(
                 phase_name) + ", turn " + str(i) + "**\n\n"
@@ -176,7 +179,8 @@ class Phase(ABC):
         else:
             seminar_conclusion = assistant_response.msg.content
 
-        log_and_print_online("**[Seminar Conclusion]**:\n\n {}".format(seminar_conclusion))
+        log_and_print_online(
+            "**[Seminar Conclusion]**:\n\n {}".format(seminar_conclusion))
         seminar_conclusion = seminar_conclusion.split("<INFO>")[-1]
         return seminar_conclusion
 
@@ -200,7 +204,8 @@ class Phase(ABC):
         messages = role_play_session.assistant_agent.stored_messages if len(
             role_play_session.assistant_agent.stored_messages) >= len(
             role_play_session.user_agent.stored_messages) else role_play_session.user_agent.stored_messages
-        messages = ["{}: {}".format(message.role_name, message.content.replace("\n\n", "\n")) for message in messages]
+        messages = ["{}: {}".format(message.role_name, message.content.replace(
+            "\n\n", "\n")) for message in messages]
         messages = "\n\n".join(messages)
 
         if "recruiting" in phase_name:
@@ -212,7 +217,8 @@ class Phase(ABC):
         elif phase_name == "EnvironmentDoc":
             question = """According to the codes and file format listed above, write a requirements.txt file to specify the dependencies or packages required for the project to run properly." """
         else:
-            raise ValueError(f"Reflection of phase {phase_name}: Not Assigned.")
+            raise ValueError(
+                f"Reflection of phase {phase_name}: Not Assigned.")
 
         # Reflections actually is a special phase between CEO and counselor
         # They read the whole chatting history of this phase and give refined conclusion of this phase
@@ -225,7 +231,8 @@ class Phase(ABC):
                           phase_name="Reflection",
                           assistant_role_prompt=self.ceo_prompt,
                           user_role_prompt=self.counselor_prompt,
-                          placeholders={"conversations": messages, "question": question},
+                          placeholders={"conversations": messages,
+                                        "question": question},
                           need_reflect=False,
                           chat_turn_limit=1,
                           model_type=self.model_type)
@@ -314,7 +321,8 @@ class DemandAnalysis(Phase):
 
     def update_chat_env(self, chat_env) -> ChatEnv:
         if len(self.seminar_conclusion) > 0:
-            chat_env.env_dict['modality'] = self.seminar_conclusion.split("<INFO>")[-1].lower().replace(".", "").strip()
+            chat_env.env_dict['modality'] = self.seminar_conclusion.split(
+                "<INFO>")[-1].lower().replace(".", "").strip()
         return chat_env
 
 
@@ -329,7 +337,8 @@ class LanguageChoose(Phase):
 
     def update_chat_env(self, chat_env) -> ChatEnv:
         if len(self.seminar_conclusion) > 0 and "<INFO>" in self.seminar_conclusion:
-            chat_env.env_dict['language'] = self.seminar_conclusion.split("<INFO>")[-1].lower().replace(".", "").strip()
+            chat_env.env_dict['language'] = self.seminar_conclusion.split(
+                "<INFO>")[-1].lower().replace(".", "").strip()
         elif len(self.seminar_conclusion) > 0:
             chat_env.env_dict['language'] = self.seminar_conclusion
         else:
@@ -370,7 +379,8 @@ class ArtDesign(Phase):
                           "codes": chat_env.get_codes()}
 
     def update_chat_env(self, chat_env) -> ChatEnv:
-        chat_env.proposed_images = chat_env.get_proposed_images_from_message(self.seminar_conclusion)
+        chat_env.proposed_images = chat_env.get_proposed_images_from_message(
+            self.seminar_conclusion)
         log_and_print_online(
             "**[Software Info]**:\n\n {}".format(get_info(chat_env.env_dict['directory'], self.log_filepath)))
         return chat_env
@@ -410,8 +420,10 @@ class CodeComplete(Phase):
                                "unimplemented_file": ""})
         unimplemented_file = ""
         for filename in self.phase_env['pyfiles']:
-            code_content = open(os.path.join(chat_env.env_dict['directory'], filename)).read()
-            lines = [line.strip() for line in code_content.split("\n") if line.strip() == "pass"]
+            code_content = open(os.path.join(
+                chat_env.env_dict['directory'], filename)).read()
+            lines = [line.strip() for line in code_content.split("\n")
+                     if line.strip() == "pass"]
             if len(lines) > 0 and self.phase_env['num_tried'][filename] < self.phase_env['max_num_implement']:
                 unimplemented_file = filename
                 break
@@ -422,7 +434,8 @@ class CodeComplete(Phase):
         chat_env.update_codes(self.seminar_conclusion)
         if len(chat_env.codes.codebooks.keys()) == 0:
             raise ValueError("No Valid Codes.")
-        chat_env.rewrite_codes("Code Complete #" + str(self.phase_env["cycle_index"]) + " Finished")
+        chat_env.rewrite_codes(
+            "Code Complete #" + str(self.phase_env["cycle_index"]) + " Finished")
         log_and_print_online(
             "**[Software Info]**:\n\n {}".format(get_info(chat_env.env_dict['directory'], self.log_filepath)))
         return chat_env
@@ -461,7 +474,8 @@ class CodeReviewModification(Phase):
     def update_chat_env(self, chat_env) -> ChatEnv:
         if "```".lower() in self.seminar_conclusion.lower():
             chat_env.update_codes(self.seminar_conclusion)
-            chat_env.rewrite_codes("Review #" + str(self.phase_env["cycle_index"]) + " Finished")
+            chat_env.rewrite_codes(
+                "Review #" + str(self.phase_env["cycle_index"]) + " Finished")
             log_and_print_online(
                 "**[Software Info]**:\n\n {}".format(get_info(chat_env.env_dict['directory'], self.log_filepath)))
         self.phase_env['modification_conclusion'] = self.seminar_conclusion
@@ -482,7 +496,8 @@ class CodeReviewHuman(Phase):
     def update_chat_env(self, chat_env) -> ChatEnv:
         if "```".lower() in self.seminar_conclusion.lower():
             chat_env.update_codes(self.seminar_conclusion)
-            chat_env.rewrite_codes("Human Review #" + str(self.phase_env["cycle_index"]) + " Finished")
+            chat_env.rewrite_codes(
+                "Human Review #" + str(self.phase_env["cycle_index"]) + " Finished")
             log_and_print_online(
                 "**[Software Info]**:\n\n {}".format(get_info(chat_env.env_dict['directory'], self.log_filepath)))
         return chat_env
@@ -553,8 +568,10 @@ class TestErrorSummary(Phase):
             pip_install_content = ""
             for match in re.finditer(r"No module named '(\S+)'", self.phase_env['test_reports'], re.DOTALL):
                 module = match.group(1)
-                pip_install_content += "{}\n```{}\n{}\n```\n".format("cmd", "bash", f"pip install {module}")
-                log_and_print_online(f"Programmer resolve ModuleNotFoundError by:\n{pip_install_content}\n")
+                pip_install_content += "{}\n```{}\n{}\n```\n".format(
+                    "cmd", "bash", f"pip install {module}")
+                log_and_print_online(
+                    f"Programmer resolve ModuleNotFoundError by:\n{pip_install_content}\n")
             self.seminar_conclusion = "nothing need to do"
         else:
             self.seminar_conclusion = \
@@ -590,7 +607,8 @@ class TestModification(Phase):
     def update_chat_env(self, chat_env) -> ChatEnv:
         if "```".lower() in self.seminar_conclusion.lower():
             chat_env.update_codes(self.seminar_conclusion)
-            chat_env.rewrite_codes("Test #" + str(self.phase_env["cycle_index"]) + " Finished")
+            chat_env.rewrite_codes(
+                "Test #" + str(self.phase_env["cycle_index"]) + " Finished")
             log_and_print_online(
                 "**[Software Info]**:\n\n {}".format(get_info(chat_env.env_dict['directory'], self.log_filepath)))
         return chat_env
@@ -631,3 +649,48 @@ class Manual(Phase):
         chat_env._update_manuals(self.seminar_conclusion)
         chat_env.rewrite_manuals()
         return chat_env
+
+
+class IdeaGeneration(Phase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+def update_phase_env(self, chat_env):
+    self.phase_env = {"task": chat_env.env_dict['task_prompt']}
+
+
+def update_chat_env(self, chat_env) -> ChatEnv:
+    if len(self.seminar_conclusion) > 0 and "<INFO>" in self.seminar_conclusion:
+        chat_env.env_dict['ideas'] = self.seminar_conclusion.split(
+            "<INFO>")[-1].lower().replace(".", "").strip()
+    elif len(self.seminar_conclusion) > 0:
+        chat_env.env_dict['ideas'] = self.seminar_conclusion
+    else:
+        chat_env.env_dict['ideas'] = "I have no idea"
+        log_and_print_online(
+            "**[Idea]**:\n\n {}".format(get_info(chat_env.env_dict['directory'], self.log_filepath)))
+    return chat_env
+
+
+class ContentGeneration(Phase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+def update_phase_env(self, chat_env):
+    self.phase_env = {"task": chat_env.env_dict['task_prompt'],
+                      "ideas": chat_env.env_dict['ideas']}
+
+
+def update_chat_env(self, chat_env) -> ChatEnv:
+    if len(self.seminar_conclusion) > 0 and "<INFO>" in self.seminar_conclusion:
+        chat_env.env_dict['content'] = self.seminar_conclusion.split(
+            "<INFO>")[-1].lower().replace(".", "").strip()
+    elif len(self.seminar_conclusion) > 0:
+        chat_env.env_dict['content'] = self.seminar_conclusion
+    else:
+        chat_env.env_dict['content'] = "No content sorry"
+        log_and_print_online(
+            "**[content]**:\n\n {}".format(get_info(chat_env.env_dict['directory'], self.log_filepath)))
+    return chat_env
